@@ -4,7 +4,7 @@ const IMG = {};
 const FONT = {};
 const FONT_OFFSET = {};
 
-let P5 = new p5(function(p) {
+let P5 = new p5(function (p) {
     p.preload = function () {
         console.log('loading assets...');
         IMG.mine = p.loadImage('./img/mine.png');
@@ -31,7 +31,7 @@ let P5 = new p5(function(p) {
         ai = new AI(board);
         // noLoop();
         p.redraw();
-        p.frameRate(30);
+        p.frameRate(60);
     }
 
     p.draw = function () {
@@ -51,7 +51,6 @@ let P5 = new p5(function(p) {
         let mr = Math.floor((p.mouseY - CONFIG.board_tl.y) / CONFIG.tilesize);
 
         if (board.gameover) return;
-        console.log(p.mouseButton);
 
         if (p.mouseButton === p.LEFT) {
             if (p.keyIsPressed && p.key === 'Shift') {

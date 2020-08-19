@@ -5,7 +5,7 @@ const CONFIG = {
     tilesize: 32,
     rows: 30,
     cols: 30,
-    mines: 150,
+    mines: 175,
 
     maxincbreak: 1050,
 
