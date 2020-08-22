@@ -37,7 +37,7 @@ let P5 = new p5(function (p) {
     p.draw = function () {
         // background(51);
 
-        if (board.gameover) return;
+        if (board.gameover || ai.gameover) return;
 
         if (ai.enabled) {
             ai.aiStep();

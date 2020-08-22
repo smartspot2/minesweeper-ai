@@ -4,6 +4,7 @@ class AI {
         this.board = board;
         this.curpos = [0, 0];
         this.enabled = true;
+        this.gameover = false;
         this.changed = true;
 
         /**
@@ -64,68 +65,112 @@ class AI {
             let permuteSuccessful = this.permuteStep();
             if (!permuteSuccessful) {
                 this.curpos = [0, 0];
-                this.enabled = false;
+                this.gameover = true;
             }
         } else {
             this.nextPos();
             let [r, c] = this.curpos;
-
+            let prevNums = this.getBorder()[1];
+            let curClicked, curFlagged;
             if (!this.board.arr[r][c].covered) {
-                this.changed |= this.board.click(r, c, true);
-                this.changed |= this.flagAround(r, c);
+                curClicked = this.board.click(r, c, true);
+                curFlagged = this.flagAround(r, c);
             }
-
-            this.borderTiles = this.getBorder()[0];
+            this.changed |= curClicked || curFlagged;
+            let [afterBorder, afterNums] = this.getBorder();
+            this.borderTiles = afterBorder;
+            if (curClicked) {  // Add uncovered number tiles to front of list
+                let newNums = afterNums.filter(tile => !includesCoord(prevNums, tile));
+                // Remove all coords surrounding just clicked tile as well
+                for (let coordIdx = this.posqueue.length - 1; coordIdx >= 0; coordIdx--) {
+                    if (includesCoord(this.board.arr[r][c].adj, this.posqueue[coordIdx])) {
+                        this.posqueue.splice(coordIdx, 1);
+                    }
+                }
+                this.posqueue.unshift(...newNums);
+            }
+            if (curFlagged) {  // Add potential number tiles to front of list
+                let newNums = [];
+                for (let [flag_r, flag_c] of this.board.arr[r][c].adj) {  // flags
+                    if (!this.board.arr[flag_r][flag_c].flagged) continue;
+                    for (let [potential_r, potential_c] of this.board.arr[flag_r][flag_c].adj) {  // adj uncovered
+                        let invalid_potential = (potential_r === r && potential_c === c)
+                            || this.board.arr[potential_r][potential_c].covered
+                            || this.board.countUnflaggedAround(potential_r, potential_c) === 0
+                            || includesCoord(newNums, [potential_r, potential_c]);
+                        if (invalid_potential) {
+                            let posqueueIdx = this.posqueue.findIndex(
+                                coord => coord[0] === potential_r && coord[1] === potential_c
+                            );
+                            if (posqueueIdx >= 0) {  // Remove from queue if not potential candidate anymore
+                                this.posqueue.splice(posqueueIdx, 1);
+                            }
+                            continue;
+                        }
+                        newNums.push([potential_r, potential_c]);
+                    }
+                }
+                this.posqueue = this.posqueue.filter(tile => !includesCoord(newNums, tile));
+                newNums.sort(coordSortFunc);
+                this.posqueue.unshift(...newNums);
+            }
             this.groupedBorderTiles = this.groupBorder(this.borderTiles);
         }
     }
 
     nextPos() {
         if (this.posqueue.length === 0) {
+            if (this.changed) {
+                this.changed = false;
+            } else {  // Switch to permuting
+                this.#initPermuting();
+                return;
+            }
             let [borderTiles, borderNums] = this.getBorder();
             this.posqueue = borderNums;
             this.borderTiles = borderTiles;
             this.groupedBorderTiles = this.groupBorder(this.borderTiles);
             if (this.posqueue.length === 0) {
                 this.curpos = [0, 0];
-                this.enabled = false;
-                return;
-            }
-            if (this.changed) {
-                this.changed = false;
-            } else {
-                this.permuting = true;
-                this.changed = true;
-                this.perm.group = 0;
-                this.perm.next = '';
-                this.perm.counts = Array(this.groupedBorderTiles.length).fill(0);
-                this.perm.freq = [];
-                this.adjBorderTiles = [];
-                this.perm.adj = Array(this.groupedBorderTiles.length).fill(0).map(() => Object());
-                this.perm.adjPerms = Array(this.groupedBorderTiles.length).fill(0).map(() => Object());
-                for (let [group_idx, group] of this.groupedBorderTiles.entries()) {
-                    this.perm.freq.push(Array(group.length).fill(0));
-                    let adj = this.#getUncoveredAdj(group);
-                    this.adjBorderTiles.push(adj);
-                    for (let coord of adj) {
-                        this.perm.adj[group_idx][coord] = [];
-                        let minesLeft = this.board.arr[coord[0]][coord[1]].val;
-                        // Filter for uncovered & unflagged, counting flags in the process
-                        for (let adjCoord of this.board.arr[coord[0]][coord[1]].adj) {
-                            if (this.board.arr[adjCoord[0]][adjCoord[1]].covered && !this.board.arr[adjCoord[0]][adjCoord[1]].flagged) {
-                                this.perm.adj[group_idx][coord].push(adjCoord);
-                            } else if (this.board.arr[adjCoord[0]][adjCoord[1]].flagged) {
-                                minesLeft--;
-                            }
-                        }
-                        this.perm.adjPerms[group_idx][coord] = this.getCombinations(minesLeft, this.perm.adj[group_idx][coord].length);
-                    }
-                }
-                console.log('generating permutations...')
+                this.gameover = true;
                 return;
             }
         }
         this.curpos = this.posqueue.shift();
+    }
+
+    /**
+     * Initialize permutation process and variables
+     */
+    #initPermuting() {
+        this.permuting = true;
+        this.changed = true;
+        this.perm.group = 0;
+        this.perm.next = '';
+        this.perm.counts = Array(this.groupedBorderTiles.length).fill(0);
+        this.perm.freq = [];
+        this.adjBorderTiles = [];
+        this.perm.adj = Array(this.groupedBorderTiles.length).fill(0).map(() => Object());
+        this.perm.adjPerms = Array(this.groupedBorderTiles.length).fill(0).map(() => Object());
+        for (let [group_idx, group] of this.groupedBorderTiles.entries()) {
+            this.perm.freq.push(Array(group.length).fill(0));
+            let adj = this.#getUncoveredAdj(group);
+            this.adjBorderTiles.push(adj);
+            for (let coord of adj) {
+                this.perm.adj[group_idx][coord] = [];
+                let minesLeft = this.board.arr[coord[0]][coord[1]].val;
+                // Filter for uncovered & unflagged, counting flags in the process
+                for (let adjCoord of this.board.arr[coord[0]][coord[1]].adj) {
+                    if (this.board.arr[adjCoord[0]][adjCoord[1]].covered && !this.board.arr[adjCoord[0]][adjCoord[1]].flagged) {
+                        this.perm.adj[group_idx][coord].push(adjCoord);
+                    } else if (this.board.arr[adjCoord[0]][adjCoord[1]].flagged) {
+                        minesLeft--;
+                    }
+                }
+                this.perm.adjPerms[group_idx][coord] = this.getCombinations(minesLeft, this.perm.adj[group_idx][coord].length);
+            }
+        }
+        console.log('generating permutations...')
     }
 
     /**
@@ -229,10 +274,10 @@ class AI {
                 }
             }
         }
-        borderTiles = Array.from(borderTiles).map(v => v.split(',').map(it => Number(it)));
-        borderNums = Array.from(borderNums).map(v => v.split(',').map(it => Number(it)));
-        borderTiles.sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);
-        borderNums.sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);
+        borderTiles = Array.from(borderTiles).map(strToCoord);
+        borderNums = Array.from(borderNums).map(strToCoord);
+        borderTiles.sort(coordSortFunc);
+        borderNums.sort(coordSortFunc);
         return [borderTiles, borderNums];
     }
 
@@ -267,7 +312,7 @@ class AI {
                 borderGroups[firstIdx].push(coord);
             }
         }
-        borderGroups.forEach(group => group.sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]));
+        borderGroups.forEach(group => group.sort(coordSortFunc));
         borderGroups.sort((groupA, groupB) => groupA.length - groupB.length)
         return borderGroups;
     }

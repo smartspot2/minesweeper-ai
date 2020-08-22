@@ -57,3 +57,22 @@ function nextBitPerm(v) {
     // set to 0 the least significant ones, and add the necessary 1 bits.
     return (t + 1) | (((~t & -~t) - 1) >> (ctz(v) + 1));
 }
+
+/**
+ * Sort function for coordinate lists
+ * @param   {[number, number]}  a
+ * @param   {[number, number]}  b
+ * @returns {number}
+ */
+function coordSortFunc(a, b) {
+    return a[0] === b[0] ? a[1] - b[1] : a[0] - b[0];
+}
+
+/**
+ * Converts a string of the form 'r,c' to a coordinate list
+ * @param   {string}    s   string of form 'r,c'
+ * @returns {number[]}      coordinate list
+ */
+function strToCoord(s) {
+    return s.split(',').map(val => Number(val))
+}

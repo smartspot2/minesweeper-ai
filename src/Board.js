@@ -202,4 +202,18 @@ class Board {
         }
         return numCovered;
     }
+
+    /**
+     * Counts the number of covered tiles with no flag surrounding (r, c)
+     * @param   {number}    r   row
+     * @param   {number}    c   col
+     * @returns {number}
+     */
+    countUnflaggedAround(r, c) {
+        let numUnflagged = 0;
+        for (let [newR, newC] of this.arr[r][c].adj) {
+            numUnflagged += this.arr[newR][newC].covered && !this.arr[newR][newC].flagged;
+        }
+        return numUnflagged;
+    }
 }
