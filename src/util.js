@@ -1,6 +1,6 @@
 /**
  * Shuffles array in place.
- * @param {Array} a An array containing the items.
+ * @param {Array} a
  */
 function shuffle(a) {
     let j, x, i;
@@ -14,10 +14,10 @@ function shuffle(a) {
 }
 
 /**
- * Determines whether a coordinate is in an array
- * @param   {number[][]}        arr
- * @param   {[number, number]}  coord
- * @returns {boolean}
+ * Determines whether a coordinate is in an array.
+ * @param {number[][]} arr - Array to search in
+ * @param {[number, number]} coord - Coordinate to find
+ * @returns {boolean} Whether coordinate is present in the array
  */
 function includesCoord(arr, coord) {
     for (let c of arr) {
@@ -29,9 +29,9 @@ function includesCoord(arr, coord) {
 }
 
 /**
- * Counts the number of trailing 0s in a 32-bit string
+ * Counts the number of trailing 0s in a 32-bit number.
  * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/clz32
- * @param integer
+ * @param {number} integer
  * @returns {number}
  */
 function ctz(integer) { // count trailing zeros
@@ -48,8 +48,8 @@ function ctz(integer) { // count trailing zeros
 /**
  * Generates the lexicographically next bit permutation.
  * @see https://graphics.stanford.edu/~seander/bithacks.html#NextBitPermutation
- * @param   {number}    v   previous bit-string
- * @returns {number}        next bit-string
+ * @param {number} v - Previous bit-string
+ * @returns {number} Next bit-string
  */
 function nextBitPerm(v) {
     let t = v | (v - 1); // t gets v's least significant 0 bits set to 1
@@ -59,9 +59,9 @@ function nextBitPerm(v) {
 }
 
 /**
- * Sort function for coordinate lists
- * @param   {[number, number]}  a
- * @param   {[number, number]}  b
+ * Sort function for coordinate lists.
+ * @param {[number, number]} a
+ * @param {[number, number]} b
  * @returns {number}
  */
 function coordSortFunc(a, b) {
@@ -69,9 +69,9 @@ function coordSortFunc(a, b) {
 }
 
 /**
- * Converts a string of the form 'r,c' to a coordinate list
- * @param   {string}    s   string of form 'r,c'
- * @returns {number[]}      coordinate list
+ * Converts a string of the form 'r,c' to a coordinate list.
+ * @param {string} s - String of form 'r,c'
+ * @returns {number[]} Coordinate as a list
  */
 function strToCoord(s) {
     return s.split(',').map(val => Number(val))
